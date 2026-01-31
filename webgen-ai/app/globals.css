@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* On ajoute un fond par défaut pour être sûr que le CSS charge */
+body {
+  background-color: #0B0F19;
+  color: white;
+}
