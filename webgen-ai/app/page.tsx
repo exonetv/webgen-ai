@@ -1,6 +1,6 @@
 "use client";
 import { useState } from 'react';
-import { db } from '../firebase'; // Le chemin est correct ici (../ remonte à src/)
+import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
@@ -14,20 +14,13 @@ const IconLock = () => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [publishing, setPublishing] = useState(false);
   const [siteCode, setSiteCode] = useState<string | null>(null);
-  
-  // États pour la personnalisation
   const [customTitle, setCustomTitle] = useState('');
 
-  // États pour le Paiement
+  // États Paiement
   const [showPricing, setShowPricing] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  const router = useRouter();
-
-  // Fonction pour générer ou mettre à jour le site
   const genererSite = async (updates: any = null) => {
     if (!prompt) return;
     setLoading(true);
@@ -48,53 +41,53 @@ export default function Home() {
     }
   };
 
-  const handlePublishClick = () => {
-    if (isPaid) {
-      // Si déjà payé, on publie directement
-      finaliserPublication();
-    } else {
-      // Sinon, on affiche le tableau des prix
-      setShowPricing(true);
-    }
-  };
-
-  const simulerPaiementStripe = () => {
-    setProcessingPayment(true);
-    // On simule un délai réseau de 2 secondes comme si on parlait à la banque
-    setTimeout(() => {
-      setProcessingPayment(false);
-      setIsPaid(true); // C'est payé !
-      setShowPricing(false); // On ferme la modale
-      finaliserPublication(); // On lance la publication automatiquement
-    }, 2000);
-  };
-
-  const finaliserPublication = async () => {
+  const lancerPaiementStripe = async () => {
     if (!siteCode) return;
-    setPublishing(true);
+    setProcessingPayment(true);
+    
     try {
+      // 1. On sauvegarde d'abord le site dans Firebase pour avoir un ID
+      // (On le marque comme non-payé pour l'instant, ou on le sauvegarde simplement)
       const docRef = await addDoc(collection(db, "sites"), {
         prompt, 
         code: siteCode, 
         createdAt: new Date(), 
-        views: 0
+        paid: false // On pourrait vérifier ce champ plus tard
       });
-      router.push(`/site/${docRef.id}`);
+
+      // 2. On appelle notre route API Stripe en lui donnant l'ID du site
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteId: docRef.id }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        // 3. On redirige l'utilisateur vers la page de paiement Stripe
+        window.location.href = data.url;
+      } else {
+        alert("Erreur lors de la création du paiement.");
+        setProcessingPayment(false);
+      }
+
     } catch (e: any) {
-      alert("Erreur publication: " + e.message);
-      setPublishing(false);
+      console.error("Erreur:", e);
+      alert("Une erreur est survenue.");
+      setProcessingPayment(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#0B0F19] font-sans text-gray-100 flex flex-col relative overflow-hidden">
       
-      {/* MODALE DE PAIEMENT (Overlay) */}
+      {/* MODALE DE PAIEMENT */}
       {showPricing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-[#131722] border border-gray-700 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
             
-            {/* Colonne Gauche: Résumé */}
+            {/* Colonne Résumé */}
             <div className="p-8 md:w-1/2 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border-r border-gray-700 flex flex-col justify-center">
               <h2 className="text-3xl font-bold mb-4">Votre site est prêt ! 🚀</h2>
               <p className="text-gray-300 mb-8">
@@ -110,14 +103,10 @@ export default function Home() {
                   <div className="bg-green-500/20 p-1 rounded-full"><IconCheck /></div>
                   <span>Nom de domaine personnalisé</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="bg-green-500/20 p-1 rounded-full"><IconCheck /></div>
-                  <span>Suppression du logo WebGen</span>
-                </div>
               </div>
             </div>
 
-            {/* Colonne Droite: Prix */}
+            {/* Colonne Prix */}
             <div className="p-8 md:w-1/2 flex flex-col justify-center bg-[#0B0F19]">
               <div className="text-center mb-8">
                 <span className="bg-purple-500/10 text-purple-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Offre de lancement</span>
@@ -125,16 +114,16 @@ export default function Home() {
                   <span className="text-5xl font-black text-white">19€</span>
                   <span className="text-gray-500">/site</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">Paiement unique. Pas d'abonnement caché.</p>
+                <p className="text-sm text-gray-500 mt-2">Paiement unique sécurisé par Stripe.</p>
               </div>
 
               <button 
-                onClick={simulerPaiementStripe}
+                onClick={lancerPaiementStripe}
                 disabled={processingPayment}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-purple-900/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {processingPayment ? (
-                  <>Processing <IconLoader /></>
+                  <>Redirection... <IconLoader /></>
                 ) : (
                   <>Payer & Publier <IconLock /></>
                 )}
@@ -144,15 +133,14 @@ export default function Home() {
                 onClick={() => setShowPricing(false)}
                 className="mt-4 text-gray-500 hover:text-white text-sm"
               >
-                Annuler et continuer à éditer
+                Annuler
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* --- RESTE DU SITE --- */}
+      {/* --- SITE NORMAL --- */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
 
@@ -168,15 +156,11 @@ export default function Home() {
         {siteCode ? (
           <div className="w-full max-w-7xl h-[85vh] flex flex-col animate-in fade-in zoom-in duration-500">
             
-            {/* Barre d'outils de modification */}
+            {/* Barre d'outils */}
             <div className="bg-[#131722] border border-gray-700 rounded-xl p-3 mb-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setSiteCode(null)} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm rounded-lg hover:bg-white/5 transition">
-                        ← Retour
-                    </button>
+                    <button onClick={() => setSiteCode(null)} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm rounded-lg hover:bg-white/5 transition">← Retour</button>
                     <div className="h-6 w-px bg-gray-700 mx-2"></div>
-                    
-                    {/* Boutons Couleurs */}
                     <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500 mr-2 uppercase font-bold tracking-wider">Thème</span>
                         {['Rouge', 'Bleu', 'Vert', 'Violet', 'Orange'].map(c => (
@@ -185,14 +169,10 @@ export default function Home() {
                                 onClick={() => genererSite({ color: c })}
                                 className="w-6 h-6 rounded-full border border-gray-600 hover:scale-110 transition shadow-sm"
                                 style={{ backgroundColor: c === 'Rouge' ? '#EF4444' : c === 'Bleu' ? '#3B82F6' : c === 'Vert' ? '#10B981' : c === 'Violet' ? '#8B5CF6' : '#F97316' }}
-                                title={`Appliquer le thème ${c}`}
                             />
                         ))}
                     </div>
-
                     <div className="h-6 w-px bg-gray-700 mx-2"></div>
-
-                    {/* Input Titre */}
                     <div className="flex items-center gap-2">
                          <input 
                             type="text" 
@@ -211,20 +191,17 @@ export default function Home() {
                 </div>
 
                 <button 
-                    onClick={handlePublishClick}
-                    disabled={publishing}
+                    onClick={() => setShowPricing(true)}
                     className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-purple-900/50 flex items-center gap-2 transition"
                 >
-                    {publishing ? <IconLoader /> : isPaid ? 'Publier (Payé)' : 'Publier le site'}
-                    {!isPaid && <IconLock />}
+                    Publier le site <IconLock />
                 </button>
             </div>
 
-            {/* Preview Site */}
             <div className="flex-1 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-700 flex flex-col relative">
                 {loading && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-[#131722] p-6 rounded-xl border border-gray-700 shadow-2xl flex flex-col items-center">
+                         <div className="bg-[#131722] p-6 rounded-xl border border-gray-700 shadow-2xl flex flex-col items-center">
                             <IconLoader />
                             <p className="mt-4 text-white font-medium">Modification en cours...</p>
                         </div>
