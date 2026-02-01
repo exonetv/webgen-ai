@@ -1,11 +1,11 @@
 "use client";
 import { useState } from 'react';
-import { db } from '../firebase';
+import { db } from '../firebase'; // Le chemin est correct ici (../ remonte à src/)
 import { collection, addDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 
 // --- ICONES ---
-const IconSparkles = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>);
+const IconSparkles = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09-3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>);
 const IconLoader = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 animate-spin"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>);
 const IconArrowRight = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>);
 const IconCheck = () => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-green-400"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>);
@@ -27,6 +27,7 @@ export default function Home() {
 
   const router = useRouter();
 
+  // Fonction pour générer ou mettre à jour le site
   const genererSite = async (updates: any = null) => {
     if (!prompt) return;
     setLoading(true);
@@ -49,7 +50,7 @@ export default function Home() {
 
   const handlePublishClick = () => {
     if (isPaid) {
-      // Si déjà payé, on publie direct
+      // Si déjà payé, on publie directement
       finaliserPublication();
     } else {
       // Sinon, on affiche le tableau des prix
@@ -73,7 +74,10 @@ export default function Home() {
     setPublishing(true);
     try {
       const docRef = await addDoc(collection(db, "sites"), {
-        prompt, code: siteCode, createdAt: new Date(), views: 0
+        prompt, 
+        code: siteCode, 
+        createdAt: new Date(), 
+        views: 0
       });
       router.push(`/site/${docRef.id}`);
     } catch (e: any) {
@@ -148,7 +152,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- RESTE DU SITE (Identique) --- */}
+      {/* --- RESTE DU SITE --- */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
 
@@ -164,6 +168,7 @@ export default function Home() {
         {siteCode ? (
           <div className="w-full max-w-7xl h-[85vh] flex flex-col animate-in fade-in zoom-in duration-500">
             
+            {/* Barre d'outils de modification */}
             <div className="bg-[#131722] border border-gray-700 rounded-xl p-3 mb-4 flex flex-wrap items-center justify-between gap-4 shadow-xl">
                 <div className="flex items-center gap-2">
                     <button onClick={() => setSiteCode(null)} className="text-gray-400 hover:text-white px-3 py-1.5 text-sm rounded-lg hover:bg-white/5 transition">
@@ -171,6 +176,7 @@ export default function Home() {
                     </button>
                     <div className="h-6 w-px bg-gray-700 mx-2"></div>
                     
+                    {/* Boutons Couleurs */}
                     <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500 mr-2 uppercase font-bold tracking-wider">Thème</span>
                         {['Rouge', 'Bleu', 'Vert', 'Violet', 'Orange'].map(c => (
@@ -183,7 +189,10 @@ export default function Home() {
                             />
                         ))}
                     </div>
+
                     <div className="h-6 w-px bg-gray-700 mx-2"></div>
+
+                    {/* Input Titre */}
                     <div className="flex items-center gap-2">
                          <input 
                             type="text" 
@@ -211,6 +220,7 @@ export default function Home() {
                 </button>
             </div>
 
+            {/* Preview Site */}
             <div className="flex-1 bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-700 flex flex-col relative">
                 {loading && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
