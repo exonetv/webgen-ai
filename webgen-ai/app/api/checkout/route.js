@@ -1,15 +1,17 @@
 import Stripe from 'stripe';
 import { NextResponse } from 'next/server';
 
-// On initialise Stripe avec la clé secrète
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { siteId } = body; // On récupère l'ID du site à payer
+    const { siteId } = body;
 
-    // On crée la session de paiement
+    // --- CORRECTION MAGIQUE ---
+    // On récupère l'adresse du site qui a fait la demande (localhost ou vercel)
+    const origin = req.headers.get('origin') || 'http://localhost:3000';
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -20,16 +22,15 @@ export async function POST(req) {
               name: 'Hébergement & Publication Site Web',
               description: 'Licence unique pour votre site généré par IA',
             },
-            unit_amount: 1900, // 19.00€ (en centimes)
+            unit_amount: 1900,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      // URLs de redirection après paiement
-      // Remplace localhost:3000 par ton lien Vercel quand tu passeras en production !
-      success_url: `http://localhost:3000/site/${siteId}?success=true`,
-      cancel_url: `http://localhost:3000/`,
+      // On utilise la variable 'origin' au lieu de localhost en dur
+      success_url: `${origin}/site/${siteId}?success=true`,
+      cancel_url: `${origin}/`,
     });
 
     return NextResponse.json({ url: session.url });
