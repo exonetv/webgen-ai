@@ -105,8 +105,15 @@ export default function Home() {
         setShowAuthModal(false);
         setStep(1);
     } catch (err: any) {
-        console.error(err);
-        setAuthError("Erreur lors de la connexion Google.");
+        console.error("Erreur Google Auth:", err);
+        // Gestion plus précise des erreurs Google pour aider au débogage
+        if (err.code === 'auth/unauthorized-domain') {
+            setAuthError("Erreur : Ajoutez ce domaine (Vercel) dans Firebase > Auth > Settings > Authorized domains.");
+        } else if (err.code === 'auth/popup-closed-by-user') {
+            setAuthError("Connexion annulée par l'utilisateur.");
+        } else {
+            setAuthError("Erreur lors de la connexion Google.");
+        }
     }
   };
 
